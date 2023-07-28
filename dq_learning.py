@@ -78,6 +78,14 @@ class Agent():
 
         return action
 
+    def predict_action(self, observation):
+
+        state = T.tensor([observation]).to(self.Q_eval.device)
+        actions = self.Q_eval.forward(state)
+        action = T.argmax(actions).item()
+    
+        return action
+
     def learn(self):
         if self.mem_counter < self.batch_size:
             return

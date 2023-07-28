@@ -7,12 +7,12 @@ import torch
 if __name__ == "__main__":
 
     env = gym.make('LunarLander-v2')
-    agent = Agent(gamma=0.99, epsilion=1.0, batch_size=256, n_actions=4,
-    eps_end=0.01, input_dims=[8], lr=0.0001)
+    agent = Agent(gamma=0.99, epsilion=1.0, batch_size=64, n_actions=4,
+    eps_end=0.01, input_dims=[8], lr=0.0001, max_mem_size=100_000)
 
     print(agent.Q_eval.device)
     scores, eps_history = [], []
-    n_games = 1
+    n_games = 500
 
     for i in range(n_games):
         score = 0
