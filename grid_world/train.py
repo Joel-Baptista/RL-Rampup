@@ -6,8 +6,8 @@ import copy
 import numpy as np
 import time
 
-GRID_SIZE = 64
-EPSILON_END = 0.2
+GRID_SIZE = 50
+EPSILON_END = 0.1
 EPSILON_DECAY = 0.00005
 GAMMA = 0.99
 EPISODES = 500

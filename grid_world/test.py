@@ -10,7 +10,7 @@ import time
 global pos
 global pos_next
 
-N = 64
+N = 50
 AGENT_POS = None
 
 if __name__=="__main__":

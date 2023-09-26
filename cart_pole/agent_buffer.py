@@ -32,7 +32,7 @@ class DeepQNetwork(nn.Module):
 
         return actions
 
-class Agent():
+class AgentBuffer():
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, 
     max_mem_size=100000, eps_end=0.01, eps_dec=3e-4) -> None:
         
@@ -87,7 +87,7 @@ class Agent():
     
         return action
 
-    def learn(self):
+    def learn(self, state, action, reward, state_):
         if self.mem_counter < self.batch_size:
             return
 

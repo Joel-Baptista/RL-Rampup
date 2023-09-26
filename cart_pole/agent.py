@@ -22,7 +22,8 @@ class Agent():
             action = random.randint(0, self.n_actions - 1)
         else:
 
-            Q_values = torch.tensor([self.Q(torch.Tensor(np.append(state, i))) for i in range(0, self.n_actions)])
+            # Q_values = torch.tensor([self.Q(torch.Tensor(np.append(state, i))) for i in range(0, self.n_actions)])
+            Q_values = self.Q(state)
             action = torch.argmax(Q_values).item()
 
         return action
@@ -30,16 +31,23 @@ class Agent():
     def learn(self, state, action, reward, next_state):
         self.Q.optimizer.zero_grad()
         
-        Q_values_target = torch.tensor([self.Q(torch.Tensor(np.append(next_state, i))) for i in range(0, self.n_actions)])
-        Q_max_target = torch.max(Q_values_target)
+        # Q_values_target = torch.tensor([self.Q(torch.Tensor(np.append(next_state, i))) for i in range(0, self.n_actions)])
+        # Q_max_target = torch.max(Q_values_target)
 
-        td_target = reward + self.gamma * Q_max_target
+        # td_target = reward + self.gamma * Q_max_target
 
-        Q_value = self.Q(torch.Tensor(np.append(state, action)))
+        # Q_value = self.Q(torch.Tensor(np.append(state, action)))
 
-        loss = self.Q.loss(Q_value, td_target)
-        print(f"Loss: {loss.item()}")
-        loss.backward()
+        # loss = self.Q.loss(Q_value, td_target)
+        # print(f"Loss: {loss.item()}")
+        # loss.backward()
+
+        q_value = self.Q(state)[action]
+
+        q_target = reward + self.gamma * torch.max(self.Q(next_state))
+
+        loss = self.Q.loss(q_value, q_target)
+        loss.backward() 
 
         self.Q.optimizer.step()
 
@@ -50,9 +58,9 @@ class Qnetwork(nn.Module):
     def __init__(self, dim_states, dim_actions, lr) -> None:
         super().__init__()
 
-        self.fc1 = nn.Linear(dim_states + dim_actions, 32)
+        self.fc1 = nn.Linear(dim_states, 32)
         self.fc2 = nn.Linear(32, 16)
-        self.fc3 = nn.Linear(16, 1)
+        self.fc3 = nn.Linear(16, dim_actions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
@@ -60,6 +68,8 @@ class Qnetwork(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
+
+        x = torch.Tensor(x)
 
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
