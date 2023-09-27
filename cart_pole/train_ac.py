@@ -1,5 +1,5 @@
 import gym
-from agent_reinforce import Agent
+from agent_ac import AgentAC
 import numpy as np
 import torch
 import json
@@ -12,7 +12,7 @@ INITIAL_EXPERIMENT = 0
 
 def save_data(data, n):
 
-    with open(f"/home/joel/PhD/RL-Skid2Mid/cart_pole/policy_gradients/reinforce{n}_train_data.json", 'w') as outfile:
+    with open(f"/home/joel/PhD/RL-Skid2Mid/cart_pole/ac/ac{n}_train_data.json", 'w') as outfile:
             json.dump(data, outfile)
 
 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     for n in range(INITIAL_EXPERIMENT, n_experiments):
         max_avg_score = 0
-        agent = Agent(4, 2)
+        agent = AgentAC(4, 2, 0.0001)
         scores, eps_history = [], []
         # for i in range(n_games):
         st = time.time()
@@ -45,7 +45,11 @@ if __name__ == "__main__":
 
                 action = agent.choose_action(observation)
                 observation_, reward, done, info = env.step(action)
-                agent.rewards.append(reward)
+
+                agent.learn_q(observation, action, reward, observation_)
+
+                agent.learn_policy()
+
                 # reward = reward_shaping(observation, action)
                 score += reward 
 
@@ -58,7 +62,7 @@ if __name__ == "__main__":
             avg_score = np.mean(scores[-300:])
             
             if i % 10 == 0 and avg_score > max_avg_score:
-                torch.save(agent.policy.state_dict(), f"/home/joel/PhD/RL-Skid2Mid/cart_pole/policy_gradients/model_reinforce{n}.pt")
+                torch.save(agent.policy.state_dict(), f"/home/joel/PhD/RL-Skid2Mid/cart_pole/ac/model_ac{n}.pt")
                 train_data = {"train_time": str(timedelta(seconds=time.time() - st)),
                     "last_epoch": i,
                     "avg_score": avg_score}
@@ -79,5 +83,5 @@ if __name__ == "__main__":
 
         x = [i+1 for i in range(n_games)]
         
-        torch.save(agent.policy.state_dict(), f"/home/joel/PhD/RL-Skid2Mid/cart_pole/policy_gradients/model_reinforce{n}.pt")
+        torch.save(agent.policy.state_dict(), f"/home/joel/PhD/RL-Skid2Mid/cart_pole/ac/model_ac{n}.pt")
         del agent

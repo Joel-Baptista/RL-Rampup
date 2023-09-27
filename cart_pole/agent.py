@@ -14,7 +14,7 @@ class Agent():
         self.gamma = gamma
         self.history = {}
         self.history["episodes"] = {}
-        self.Q = Qnetwork(dim_states=dim_states, dim_actions=n_actions, lr=lr)
+        self.Q_eval = Qnetwork(dim_states=dim_states, dim_actions=n_actions, lr=lr)
 
     def choose_action(self, state):
 
@@ -23,13 +23,13 @@ class Agent():
         else:
 
             # Q_values = torch.tensor([self.Q(torch.Tensor(np.append(state, i))) for i in range(0, self.n_actions)])
-            Q_values = self.Q(state)
+            Q_values = self.Q_eval(state)
             action = torch.argmax(Q_values).item()
 
         return action
 
     def learn(self, state, action, reward, next_state):
-        self.Q.optimizer.zero_grad()
+        self.Q_eval.optimizer.zero_grad()
         
         # Q_values_target = torch.tensor([self.Q(torch.Tensor(np.append(next_state, i))) for i in range(0, self.n_actions)])
         # Q_max_target = torch.max(Q_values_target)
@@ -42,14 +42,14 @@ class Agent():
         # print(f"Loss: {loss.item()}")
         # loss.backward()
 
-        q_value = self.Q(state)[action]
+        q_value = self.Q_eval(state)[action]
 
-        q_target = reward + self.gamma * torch.max(self.Q(next_state))
+        q_target = reward + self.gamma * torch.max(self.Q_eval(next_state))
 
-        loss = self.Q.loss(q_value, q_target)
+        loss = self.Q_eval.loss(q_value, q_target)
         loss.backward() 
 
-        self.Q.optimizer.step()
+        self.Q_eval.optimizer.step()
 
         self.epsilon = self.epsilon - self.e_decay if self.epsilon > self.epsilon_end else self.epsilon_end
 

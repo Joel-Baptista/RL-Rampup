@@ -41,13 +41,12 @@ class Agent():
             Gt.append(G)
         
         Gt = torch.tensor(Gt)
-        Gt = (Gt - Gt.mean()) / (Gt.std() + 0.01)
+        # Gt = (Gt - Gt.mean()) / (Gt.std() + 0.01)
         policy_gradient = []
         for k in range(0, len(self.rewards)):
             policy_gradient.append(-self.saved_log_probs[k] * Gt[k])
         
         policy_gradient = torch.cat(policy_gradient).sum()
-        print(policy_gradient)
         policy_gradient.backward()
         self.policy.optimizer.step()
         self.policy.optimizer.zero_grad()
