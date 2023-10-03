@@ -7,7 +7,7 @@ from torch.distributions import Categorical
 
 class AgentAC():
     def __init__(self, dim_states, n_actions, lr=0.0001, gamma = 0.99,epsilon_end = 0.1, e_decay = 0.0001,
-    max_mem_size=100000, batch_size = 64) -> None:
+    max_mem_size=100_000, batch_size = 128) -> None:
         self.lr = lr
         self.dim_states = dim_states
         self.n_actions = n_actions
@@ -34,22 +34,29 @@ class AgentAC():
         self.saved_log_probs = []
         self.Gt = []
 
+    def store_transition(self, state, action, reward, state_, done):
+        index = self.mem_counter % self.max_mem_size
+        self.state_memory[index] = state
+        self.new_state_memory[index] = state_
+        self.reward_memory[index] = reward
+        self.action_memory[index] = action
+        self.terminal_memory[index] = done
+
+        self.mem_counter += 1
+
     def choose_action(self, state):
-        state = torch.from_numpy(state).float().unsqueeze(0)
+        state = torch.from_numpy(state).float().unsqueeze(0).to(self.Q_eval.device)
         probs = self.policy(state)
         m = Categorical(probs)
         action = m.sample()
         self.saved_log_probs.append(m.log_prob(action))
         Q_value = self.Q_eval(state)
-        print(Q_value[0])
-        print(action.item())
-        self.Gt.append(self.Q_eval(state)[::action.item()])
+        self.Gt.append(Q_value[0, action.item()])
 
         return action.item()
 
     def learn_policy(self):
-        
-        print(self.Gt)
+    
         Gt = torch.tensor(self.Gt)
         # Gt = (Gt - Gt.mean()) / (Gt.std() + 0.01)
         policy_gradient = []
@@ -92,21 +99,23 @@ class AgentAC():
         loss = self.Q_eval.loss(q_target, q_eval).to(self.Q_eval.device)
         loss.backward()
         self.Q_eval.optimizer.step()
-
-        self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_end else self.eps_end
+        self.epsilon = self.epsilon - self.e_decay if self.epsilon > self.epsilon_end else self.epsilon_end
 
 class Policy(nn.Module):
     def __init__(self, dim_states, dim_actions, lr) -> None:
 
         super(Policy, self).__init__()
-        self.fc1 = nn.Linear(dim_states, 32)
-        self.fc2 = nn.Linear(32, 16)
-        self.fc3 = nn.Linear(16, dim_actions)
+        self.fc1 = nn.Linear(dim_states, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, dim_actions)
 
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax()
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
+
+        self.device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+        self.to(self.device)
 
     def forward(self, x):
         

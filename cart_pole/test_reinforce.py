@@ -6,19 +6,22 @@ import json
 from datetime import timedelta
 import time
 
+N_AGENT = 7
+N_GAMES = 10
+
 def save_data(data):
 
-    with open(f'/home/joel/PhD/RL-Skid2Mid/cart_pole/policy_gradients/reinforce_test_data.json', 'w') as outfile:
+    with open(f'/home/joel/PhD/RL-Skid2Mid/cart_pole/policy_gradients/tests/reinforce{N_AGENT}_test_data.json', 'w') as outfile:
             json.dump(data, outfile)
 
 if __name__ == "__main__":
     env = gym.make("CartPole-v1")
     
     agent = Agent(4, 2)
-    agent.policy.load_state_dict(torch.load("/home/joel/PhD/RL-Skid2Mid/cart_pole/model.pt"))
+    agent.policy.load_state_dict(torch.load(f"/home/joel/PhD/RL-Skid2Mid/cart_pole/policy_gradients/model_reinforce{N_AGENT}.pt"))
     agent.policy.eval()
     scores, eps_history = [], []
-    n_games = 10
+    n_games = N_GAMES
 
     train_data = {"train_time": "",
                   "last_epoch": 0,
@@ -58,4 +61,4 @@ if __name__ == "__main__":
                 "rewards": scores}
 
     print(test_data)
-    save_data(test_data)
+    # save_data(test_data)

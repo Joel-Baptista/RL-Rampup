@@ -55,6 +55,8 @@ class Agent():
         self.rewards = []
         self.policy.optimizer.step()
 
+        return policy_gradient.cpu().detach().numpy()
+
 class Policy(nn.Module):
     def __init__(self, dim_states, dim_actions, lr) -> None:
 

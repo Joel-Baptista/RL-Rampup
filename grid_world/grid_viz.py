@@ -8,8 +8,8 @@ import time
 import math
 
 TIME = 3
-TRAIN_RATIO = 1
-N = 16
+TRAIN_RATIO = 1.0
+N = 100
 
 with open(f'history_{N}.json') as f:
 	history = json.load(f)

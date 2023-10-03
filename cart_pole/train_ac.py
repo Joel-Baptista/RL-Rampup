@@ -7,7 +7,7 @@ from datetime import timedelta
 import time
 import math
 
-N_EXPERIMENT = 10
+N_EXPERIMENT = 1
 INITIAL_EXPERIMENT = 0
 
 def save_data(data, n):
@@ -30,32 +30,47 @@ if __name__ == "__main__":
 
     for n in range(INITIAL_EXPERIMENT, n_experiments):
         max_avg_score = 0
-        agent = AgentAC(4, 2, 0.0001)
+        agent = AgentAC(4, 2, 0.003)
         scores, eps_history = [], []
         # for i in range(n_games):
         st = time.time()
+        j = 0
+        is_q_learning = True
+        agent.Q_eval.train()
+        agent.policy.eval()
         while True:
             i += 1
             score = 0
             done = False
             observation = env.reset()
-            j = 0
+            
             while not done:
+                j += 1
                 # frame = env.render(mode='rgb_array')
+                
+                if j % 500 == 0 and is_q_learning:
+                    is_q_learning = False
+                    agent.Q_eval.eval()
+                    agent.policy.train()
+                    agent.saved_log_probs = []
+                    agent.Gt = []
+                elif j % 500 == 0 and not is_q_learning:
+                    is_q_learning = True
+                    agent.Q_eval.train()
+                    agent.policy.eval()
 
                 action = agent.choose_action(observation)
                 observation_, reward, done, info = env.step(action)
+                agent.store_transition(observation, action, reward, observation_, done)
 
-                agent.learn_q(observation, action, reward, observation_)
-
-                agent.learn_policy()
+                if is_q_learning: agent.learn_q(observation, action, reward, observation_)
+                if not is_q_learning: agent.learn_policy()
 
                 # reward = reward_shaping(observation, action)
                 score += reward 
 
                 observation = observation_
 
-            agent.learn()
             scores.append(score)
             # eps_history.append(agent.epsilion)
 
@@ -72,8 +87,9 @@ if __name__ == "__main__":
             print('episode: ', i, 'score %.2f' % score, 
                     'average_score %.2f' % avg_score,
                     f"{round((avg_score / max_avg_score) * 100, 2)}",
-                    f'max_avg_score: {max_avg_score}')
-            if avg_score > 450 or (avg_score < 0.85 * max_avg_score and avg_score > 100):
+                    f'max_avg_score: {max_avg_score}',
+                    f"epsilon: {agent.epsilon}")
+            if avg_score > 450:
                 break
         
         train_data = {"train_time": str(timedelta(seconds=time.time() - st)),

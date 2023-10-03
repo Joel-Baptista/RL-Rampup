@@ -6,7 +6,7 @@ import json
 from datetime import timedelta
 import time
 
-N_GAMES = 100
+N_GAMES = 10
 N_AGENT = 7
 
 def save_data(data):
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         observation = env.reset()
         j = 0
         while not done:
-            # frame = env.render(mode='rgb_array')
+            frame = env.render(mode='rgb_array')
 
             action = agent.predict_action(observation)
             observation_, reward, done, info = env.step(action)

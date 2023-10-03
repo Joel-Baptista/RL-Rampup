@@ -10,5 +10,8 @@ WORKDIR /root
 
 ENV USER="deep"
 
+RUN mkdir /root/logs
+RUN mkdir /root/models
 
+ENV PYTHONPATH="/root/RL-Skid2Mid"
 
