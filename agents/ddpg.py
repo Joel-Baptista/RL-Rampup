@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from agents.replay_buffer import ReplayBuffer
+import numpy as np
 
 class Agent:
     def __init__(self, input_dims, alpha=0.001, beta=0.002, env=None, gamma=0.99, n_actions=2, 
@@ -77,17 +78,19 @@ class Agent:
 
     def save_models(self):
         print("..... saving models ....")
-        T.save(self.actor.state_dict, self.actor.checkpoint_file)
-        T.save(self.critic.state_dict, self.critic.checkpoint_file)
-        T.save(self.target_actor.state_dict, self.target_actor.checkpoint_file)
-        T.save(self.target_critic.state_dict, self.target_critic.checkpoint_file)
+
+        T.save(self.actor.state_dict(), self.actor.checkpoint_file)
+        T.save(self.critic.state_dict(), self.critic.checkpoint_file)
+        T.save(self.target_actor.state_dict(), self.target_actor.checkpoint_file)
+        T.save(self.target_critic.state_dict(), self.target_critic.checkpoint_file)
 
     def load_models(self):
         print("..... loading models ....")
-        self.actor.load_state_dict(T.load(self.actor.checkpoint_file))
-        self.critic.load_state_dict(T.load(self.critic.checkpoint_file))
-        self.target_actor.load_state_dict(T.load(self.target_actor.checkpoint_file))
-        self.target_critic.load_state_dict(T.load(self.target_critic.checkpoint_file))
+
+        self.actor.load_state_dict(T.load(self.actor.checkpoint_file, map_location=self.device)())
+        self.critic.load_state_dict(T.load(self.critic.checkpoint_file, map_location=self.device)())
+        self.target_actor.load_state_dict(T.load(self.target_actor.checkpoint_file, map_location=self.device)())
+        self.target_critic.load_state_dict(T.load(self.target_critic.checkpoint_file, map_location=self.device)())
 
     def choose_action(self, observation, evaluate=False):
         self.actor.eval()
@@ -170,6 +173,8 @@ class CriticNetwork(nn.Module):
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
         self.q = nn.Linear(self.fc2_dims, 1)
 
+        print(self)
+
     def forward(self, state, action):
         action_value = F.relu(self.fc1(T.concat([state, action], axis=1)))
         action_value = F.relu(self.fc2(action_value))
@@ -194,6 +199,8 @@ class ActorNetwork(nn.Module):
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
         self.mu = nn.Linear(self.fc2_dims, *self.n_actions)
         
+        print(self)
+
     def forward(self, state):
 
         x = F.relu(self.fc1(state))

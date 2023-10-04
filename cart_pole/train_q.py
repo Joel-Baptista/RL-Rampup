@@ -6,11 +6,15 @@ import torch
 from datetime import timedelta
 import json
 import time
+import wandb
 
 def save_data(data, number = ""):
 
     with open(f'/home/joel/PhD/RL-Skid2Mid/cart_pole/Q_functions/q{number}_buffer_train_data.json', 'w') as outfile:
             json.dump(data, outfile)
+
+config = {"n_games": 250,
+          "env":'CartPole-v1'}
 
 if __name__ == "__main__":
     env = gym.make("CartPole-v1")
@@ -18,15 +22,19 @@ if __name__ == "__main__":
     
    
     n_games = 500
-    n_experiments = 10
-
+    n_experiments = 1
+    
+    logger = wandb.init(project="Skid2Mid", config=config)
     for n in range(0, n_experiments):
         agent = AgentBuffer(gamma=0.99, epsilon=1.0, batch_size=64, n_actions=2,
             eps_end=0.02, input_dims=[4], lr=0.0001, max_mem_size=100_000)
+        
+        logger.watch(agent.Q_eval)
         scores, eps_history = [], []
         st = time.time()
         i = 0
         max_avg_score = 0
+        cnt = 0
         # for i in range(n_games):
         while True:
             score = 0
@@ -34,6 +42,7 @@ if __name__ == "__main__":
             observation = env.reset()
             i += 1
             while not done:
+                cnt += 1
                 # frame = env.render(mode='rgb_array')
 
                 action = agent.choose_action(observation)
@@ -44,22 +53,23 @@ if __name__ == "__main__":
 
                 agent.store_transition(observation, action, reward, observation_, done)
 
-                agent.learn(observation, action, reward, observation_)
+                critic_loss = agent.learn(observation, action, reward, observation_)
 
+                logger.log({"critic_loss": critic_loss}, step=cnt)
                 observation = observation_
 
-
+            logger.log({"score": score}, step=cnt)
             scores.append(score)
             # eps_history.append(agent.epsilion)
 
             avg_score = np.mean(scores[-100:])
         
             if i % 10 == 0 and avg_score > max_avg_score:
-                torch.save(agent.Q_eval.state_dict(), f"/home/joel/PhD/RL-Skid2Mid/cart_pole/Q_functions/model_Q_buffer{n}.pt")
+                # torch.save(agent.Q_eval.state_dict(), f"/home/joel/PhD/RL-Skid2Mid/cart_pole/Q_functions/model_Q_buffer{n}.pt")
                 train_data = {"train_time": str(timedelta(seconds=time.time() - st)),
                     "last_epoch": i,
                     "avg_score": avg_score}
-                save_data(train_data, str(n))
+                # save_data(train_data, str(n))
                 max_avg_score = avg_score
 
             print('episode: ', i, 'score %.2f' % score, 
