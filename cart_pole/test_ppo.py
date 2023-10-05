@@ -1,17 +1,17 @@
 import gym
-from agents.td3 import Agent
+from agents.ppo_discrete import Agent
 import numpy as np
 import os
 
-config = {"n_games": 20,
-          "env":'BipedalWalker-v3',
+config = {"n_games": 10,
+          "env":'CartPole-v1',
           "chkpt_dir": "/home/joel/PhD/results/rl/models",
-          "algorithm": "td3",
+          "algorithm": "ppo",
           "alpha": 0.001,
           "beta": 0.001,
           "batch_size": 100,
-          "experiment": "baseline2",
-          "fc1": 1024,
+          "experiment": "baseline1",
+          "n_epochs": 4,
           "fc2": 512,
           "debug": True}
 
@@ -21,9 +21,8 @@ if __name__== "__main__":
     chkpt_dir = os.path.join(config["chkpt_dir"], config["algorithm"] ,config["experiment"])
     env = gym.make(config["env"], render_mode="human")
 
-    agent = Agent(input_dims=env.observation_space.shape, env=env, n_actions=env.action_space.shape,
-                fc1=config["fc1"], fc2=config["fc2"],
-                chkpt_dir=chkpt_dir)
+    agent = Agent(input_dims=env.observation_space.shape, n_actions=env.action_space.n, n_epochs= config["n_epochs"],
+                  alpha=config["alpha"], batch_size=config["batch_size"], chkpt_dir=chkpt_dir)
 
     agent.load_models()
 
@@ -37,14 +36,13 @@ if __name__== "__main__":
 
         while not done:           
             
-            action = agent.choose_action(observation, evaluate=True)
+            action, _, _ = agent.choose_action(observation)
 
             observation_, reward, done, unkown, info = env.step(action)
 
             if done or unkown: done = True
     
             score += reward
-            agent.remember(observation, action, reward, observation_, done)
 
             observation = observation_
 

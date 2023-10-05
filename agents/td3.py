@@ -48,7 +48,7 @@ class Agent:
         self.target_critic_2.to(self.device)
 
         self.actor_optim = optim.Adam(self.actor.parameters(), lr=alpha)
-        self.critic_1_optim = optim.Adam(self.critic_2.parameters(), lr=beta)
+        self.critic_1_optim = optim.Adam(self.critic_1.parameters(), lr=beta)
         self.critic_2_optim = optim.Adam(self.critic_2.parameters(), lr=beta)
 
         self.update_network_parameters(tau=1)
@@ -96,36 +96,39 @@ class Agent:
         self.target_critic_2.eval()
         self.critic_1.eval()
         self.critic_2.eval()
+        with T.autograd.set_detect_anomaly(True):
+            with T.no_grad():
+                target_actions = self.target_actor(states_)
+                target_actions = target_actions + T.clip(T.tensor(np.random.normal(scale=0.2)), -0.5, 0.5)
+                target_actions = T.clip(target_actions, min=self.min_action, max=self.max_action)
 
-        with T.no_grad():
-            target_actions = self.target_actor(states_)
-            target_actions = target_actions + T.clip(T.tensor(np.random.normal(scale=0.2)), -0.5, 0.5)
-            target_actions = T.clip(target_actions, min=self.min_action, max=self.max_action)
+                q1_ = self.target_critic_1(states_, target_actions)
+                q2_ = self.target_critic_2(states_, target_actions)
 
-            q1_ = self.target_critic_1(states_, target_actions).squeeze(1)
-            q2_ = self.target_critic_2(states_, target_actions).squeeze(1)
+                q_join = T.cat((q1_, q2_), axis=1)
+                # print("q1_", q1_,"q2_", q2_ , "q_join", q_join)
+                critic_value_ = T.min(q_join, axis=1)[0].view(-1)
 
-            critic_value_ = T.min(T.cat((q1_, q2_)))
+                # print("critic_value_", critic_value_, "cat", T.cat((q1_, q2_)))
 
             target = rewards + self.gamma*critic_value_*(1-dones)
 
-        q1 = self.critic_1(states, actions).squeeze(1)
-        q2 = self.critic_2(states, actions).squeeze(1)
+            q1 = self.critic_1(states, actions).squeeze(1)
+            q2 = self.critic_2(states, actions).squeeze(1)
 
+            self.critic_1.train()
+            self.critic_2.train()
 
-        self.critic_1.train()
-        self.critic_2.train()
-        self.critic_1_optim.zero_grad()
-        self.critic_2_optim.zero_grad()
+            self.critic_1_optim.zero_grad()
+            critic_loss_1 = F.mse_loss(target, q1)
+            critic_loss_1.backward(retain_graph=True)
+            
+            self.critic_2_optim.zero_grad()
+            critic_loss_2 = F.mse_loss(target, q2)
+            critic_loss_2.backward()
 
-        critic_loss_1 = F.mse_loss(target, q1)
-        critic_loss_2 = F.mse_loss(target, q2)
-        
-        critic_loss_1.backward(retain_graph=True)
-        critic_loss_2.backward()
-
-        self.critic_1_optim.step()
-        self.critic_2_optim.step()
+            self.critic_1_optim.step()
+            self.critic_2_optim.step()
 
         self.learn_step_cntr += 1
 

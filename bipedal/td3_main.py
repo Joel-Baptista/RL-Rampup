@@ -20,7 +20,7 @@ def unwatch(logger: wandb, agent: Agent):
 config = {"n_games": 2000,
           "env":'BipedalWalker-v3',
           "chkpt_dir": "/root/models",
-          "experiment": "baseline",
+          "experiment": "baseline2",
           "alpha": 0.001,
           "algorithm": "td3",
           "beta": 0.001,
@@ -42,6 +42,7 @@ config = {"n_games": 2000,
 #           "debug": True}
 
 if __name__== "__main__":
+    print(config)
 
     chkpt_dir = os.path.join(config["chkpt_dir"], config["algorithm"] ,config["experiment"])
     alg_dir = os.path.join(config["chkpt_dir"], config["algorithm"])
@@ -56,7 +57,7 @@ if __name__== "__main__":
     env = gym.make(config["env"])
     
 
-    if not config["debug"]: logger = wandb.init(project="Bipedal", config=config)
+    if not config["debug"]: logger = wandb.init(project="Bipedal", config=config, name=f"{config['algorithm']}_{config['experiment']}")
     
     agent = Agent(input_dims=env.observation_space.shape, env=env, n_actions=env.action_space.shape,
                   fc1=config["fc1"], fc2=config["fc2"], alpha=config["alpha"], beta=config["beta"], batch_size=config["batch_size"],
@@ -93,7 +94,6 @@ if __name__== "__main__":
             score += reward
             agent.remember(observation, action, reward, observation_, done)
 
-            
             actor_loss, critic1_loss, critic2_loss  = agent.learn()
 
             if (critic1_loss is not None or critic2_loss is not None) and not config["debug"]:
@@ -116,7 +116,7 @@ if __name__== "__main__":
 
         if avg_score > best_score:
             best_score = avg_score
-            agent.save_models()
+            if not config["debug"]: agent.save_models()
 
         print(f'episode {i}, score {score}, avg score {avg_score}')
 

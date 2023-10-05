@@ -92,6 +92,11 @@ class Agent:
         self.target_actor.load_state_dict(T.load(self.target_actor.checkpoint_file, map_location=self.device)())
         self.target_critic.load_state_dict(T.load(self.target_critic.checkpoint_file, map_location=self.device)())
 
+        # self.actor.load_state_dict(T.load(self.actor.checkpoint_file, map_location=self.device))
+        # self.critic.load_state_dict(T.load(self.critic.checkpoint_file, map_location=self.device))
+        # self.target_actor.load_state_dict(T.load(self.target_actor.checkpoint_file, map_location=self.device))
+        # self.target_critic.load_state_dict(T.load(self.target_critic.checkpoint_file, map_location=self.device))
+
     def choose_action(self, observation, evaluate=False):
         self.actor.eval()
         
