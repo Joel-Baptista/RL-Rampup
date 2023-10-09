@@ -7,7 +7,7 @@ from torch.distributions.categorical import Categorical
 
 
 class Agent:
-    def __init__(self, input_dims, n_actions, gamma=0.99, alpha=0.0003, policy_clip=0.2, batch_size=64, N=2048, n_epochs=10,
+    def __init__(self, input_dims, n_actions, gamma=0.99, alpha=0.0003, policy_clip=0.1, batch_size=64, N=2048, n_epochs=10,
     gae_lambda=0.95, chkpt_dir = "") -> None:
         self.gamma = gamma
         self.policy_clip = policy_clip
@@ -130,7 +130,8 @@ class PPOMemory:
         n_states = len(self.states)
         batch_start = np.arange(0, n_states, self.batch_size)
         indices = np.arange(n_states, dtype=np.int64)
-        np.random.shuffle(indices)
+        # np.random.shuffle(indices)
+        np.random.shuffle(batch_start)
         batches =  [indices[i:i+self.batch_size] for i in batch_start]
 
         return  np.array(self.states), \

@@ -15,34 +15,42 @@ def unwatch(logger: wandb, agent: Agent):
     logger.unwatch(agent.critic)
 
 
-config = {"n_games": 2000,
-          "N": 50,
+config = {"chkpt_dir":  "/home/joel/PhD/results/rl/models",
+          "n_games": 2000,
+          "N": 500,
           "env":'BipedalWalker-v3',
-          "chkpt_dir":  "/root/models",
-          "experiment": "baseline2",
-          "batch_size": 10,
-          "n_epochs": 5,
+          "experiment": "baseline1",
+          "batch_size": 100,
+          "fc1_dims": 1024,
+          "fc2_dims": 512,
+          "n_epochs": 2,
+          "policy_clip": 0.1,
           "alpha": 0.0003,
+          "beta": 0.001,
           "action_std_init": 0.6,
-          "action_std_decay_rate": 0.005,
-          "min_action_std": 0.1,
+          "action_std_decay_rate": 0.05,
+          "min_action_std": 0.05,
           "gae_lambda": 0.9,
           "algorithm": "ppo",
-          "debug": False}
+          "debug": True}
 
 
-# config = {"n_games": 2000,
-#           "N": 200,
+# config = {"n_games": 200000,
+#           "N": 500,
 #           "env":'BipedalWalker-v3',
-#           "chkpt_dir":  "/home/joel/PhD/results/rl/models",
-#           "experiment": "baseline1",
-#           "batch_size": 20,
-#           "n_epochs": 10,
+#           "chkpt_dir":  "/root/models",
+#           "experiment": "baseline9",
+#           "batch_size": 50,
+#           "fc1_dims": 1024,
+#           "fc2_dims": 512,
+#           "n_epochs": 2,
 #           "alpha": 0.0003,
+#           "beta": 0.001,
+#           "policy_clip": 0.1,
 #           "action_std_init": 0.6,
 #           "action_std_decay_rate": 0.005,
 #           "min_action_std": 0.1,
-#           "gae_lambda": 0.9,
+#           "gae_lambda": 0.5,
 #           "algorithm": "ppo",
 #           "debug": False}
 
@@ -64,9 +72,9 @@ if __name__== "__main__":
     if not config["debug"]: logger = wandb.init(project="Bipedal", config=config, name=f"{config['algorithm']}_{config['experiment']}")
     
     agent = Agent(input_dims=env.observation_space.shape, n_actions=env.action_space.shape, env=env,n_epochs= config["n_epochs"],
-                  alpha=config["alpha"], batch_size=config["batch_size"], action_std_decay=config["action_std_decay_rate"], 
+                  alpha=config["alpha"], beta=config["beta"], batch_size=config["batch_size"], action_std_decay=config["action_std_decay_rate"], 
                   action_std_min=config["min_action_std"], chkpt_dir=chkpt_dir, action_std_init=config["action_std_init"], 
-                  gae_lambda=config["gae_lambda"])
+                  fc1=config["fc1_dims"], fc2=config["fc2_dims"] ,gae_lambda=config["gae_lambda"], policy_clip=config["policy_clip"])
 
     if not config["debug"]: watch(logger, agent)
 
@@ -81,17 +89,25 @@ if __name__== "__main__":
         observation, _ = env.reset()
         done = False
         score = 0.0
-
+        stillness = 0
         while not done:
             cnt += 1
 
             action, prob, val = agent.choose_action(observation)
-            
+
             observation_, reward, done, unkwon, info = env.step(action)
+
+            if abs(observation[2]) < 0.02:
+                stillness += 1
+                if stillness >= 10:
+                    done = True
+                    reward = -100
+            else:
+                stillness = 0
 
             if done or unkwon: 
                 done = True
-                if score <= 450: reward = -20
+                # if score <= 450: reward = -20
 
             n_steps += 1
             score += reward
@@ -105,7 +121,7 @@ if __name__== "__main__":
                 if not config["debug"]: 
                     logger.log({"iter": learn_iters, 
                                 "actor_loss": actor_loss,
-                                "critic_loss": critic_loss}, step=learn_iters)
+                                "critic_loss": critic_loss}, step=cnt)
 
             observation = observation_
         
@@ -115,7 +131,7 @@ if __name__== "__main__":
         if not config["debug"]: 
             logger.log({"episode": i, 
                         "time": time.time() - st, 
-                        "score": score}, step=learn_iters)
+                        "score": score}, step=cnt)
 
         if avg_score > best_score:
             best_score = avg_score

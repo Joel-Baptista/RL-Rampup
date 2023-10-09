@@ -28,7 +28,7 @@ config = {"n_games": 300,
           "N": 20,
           "env":'CartPole-v1',
           "chkpt_dir":  "/home/joel/PhD/results/rl/models",
-          "experiment": "baseline1",
+          "experiment": "baseline2_no_reward",
           "batch_size": 5,
           "n_epochs": 4,
           "alpha": 0.0003,
@@ -77,7 +77,7 @@ if __name__== "__main__":
 
             if done or unkwon: 
                 done = True
-                if score <= 450: reward = -20
+                # if score <= 450: reward = -20
 
             n_steps += 1
             score += reward

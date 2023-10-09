@@ -1,16 +1,16 @@
 import gym
-from agents.td3 import Agent
+from agents.ppo import Agent
 import numpy as np
 import os
 
 config = {"n_games": 20,
           "env":'BipedalWalker-v3',
           "chkpt_dir": "/home/joel/PhD/results/rl/models",
-          "algorithm": "td3",
+          "algorithm": "ppo",
           "alpha": 0.001,
           "beta": 0.001,
           "batch_size": 100,
-          "experiment": "baseline2",
+          "experiment": "baseline6",
           "fc1": 1024,
           "fc2": 512,
           "debug": True}
@@ -25,6 +25,9 @@ if __name__== "__main__":
                 fc1=config["fc1"], fc2=config["fc2"],
                 chkpt_dir=chkpt_dir)
 
+    if config["algorithm"] == "ppo":
+        agent.actor.action_std = 0.1
+
     agent.load_models()
 
     score_history = []
@@ -37,14 +40,17 @@ if __name__== "__main__":
 
         while not done:           
             
-            action = agent.choose_action(observation, evaluate=True)
+            if config["algorithm"] in ["ppo"]:
+                action, _, _ = agent.choose_action(observation, evaluate=True)
+            else:
+                action = agent.choose_action(observation, evaluate=True)
 
             observation_, reward, done, unkown, info = env.step(action)
 
             if done or unkown: done = True
     
             score += reward
-            agent.remember(observation, action, reward, observation_, done)
+            # agent.remember(observation, action, reward, observation_, done)
 
             observation = observation_
 

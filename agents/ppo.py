@@ -7,7 +7,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 
 
 class Agent:
-    def __init__(self, input_dims, n_actions, env, action_std_init, action_std_decay, action_std_min,
+    def __init__(self, input_dims, n_actions, env,  fc1, fc2, beta=0.001, action_std_init=0.6, action_std_decay=0.005, action_std_min=0.1,
     gamma=0.99, alpha=0.0003, policy_clip=0.2, batch_size=64, N=2048, n_epochs=10, gae_lambda=0.95, chkpt_dir = "") -> None:
         self.gamma = gamma
         self.policy_clip = policy_clip
@@ -19,13 +19,17 @@ class Agent:
         self.actor = ActorNetwork(action_dim=n_actions, 
                                   input_dims=input_dims, 
                                   alpha=alpha, 
+                                  fc1_dims= fc1,
+                                  fc2_dims= fc2,
                                   chkpt_dir=chkpt_dir,
                                   action_std_init=action_std_init,
                                   action_std_decay=action_std_decay,
                                   action_std_min=action_std_min)
         self.critic = CriticNetwork(
             input_dims= input_dims, 
-            alpha= alpha, 
+            alpha= beta,
+            fc1_dims= fc1,
+            fc2_dims= fc2, 
             chkpt_dir=chkpt_dir)
 
         self.memory = PPOMemory(batch_size)
@@ -59,14 +63,15 @@ class Agent:
         return adjusted_action
 
 
-    def choose_action(self, observation):
+    def choose_action(self, observation, evaluate=False):
         state = T.tensor([observation], dtype=T.float).to(self.actor.device)
 
         dist = self.actor(state)
         value = self.critic(state)
-        action = dist.sample() * self.max_action
+        action = dist.sample()
         
         probs = T.squeeze(dist.log_prob(action)).item()
+        print(f"probs: {probs}")
         action = T.squeeze(action).detach()
         value = T.squeeze(value).item()
 
@@ -143,8 +148,20 @@ class PPOMemory:
         n_states = len(self.states)
         batch_start = np.arange(0, n_states, self.batch_size)
         indices = np.arange(n_states, dtype=np.int64)
-        np.random.shuffle(indices)
+        # np.random.shuffle(indices) # if we shuffle the indices, don't we loose the concept of trajectory?
+        np.random.shuffle(batch_start)
         batches =  [indices[i:i+self.batch_size] for i in batch_start]
+
+        # print("self.states")
+        # print(self.states)
+        # print("batch_start")
+        # print(batch_start)
+        # print("indices")
+        # print(indices)
+        # print("batches")
+        # print(batches)
+        # print("------------------------------------------------------------")
+
 
         return  np.array(self.states), \
                 np.array(self.actions), \
@@ -174,7 +191,7 @@ class ActorNetwork(nn.Module):
     def __init__(self, action_dim, input_dims, alpha, action_std_init, action_std_decay, action_std_min,
                  fc1_dims=256, fc2_dims=256, chkpt_dir="") -> None:
         super(ActorNetwork, self).__init__()
-        self.checkpoint_file = os.path.join(chkpt_dir, "actor_ppo_discrete.pt")
+        self.checkpoint_file = os.path.join(chkpt_dir, "actor_ppo.pt")
         self.actor = nn.Sequential(
             nn.Linear(*input_dims, fc1_dims),
             nn.ReLU(),
@@ -194,10 +211,14 @@ class ActorNetwork(nn.Module):
         self.action_var = T.full((*action_dim,), action_std_init * action_std_init).to(self.device)
 
 
-    def set_action_std(self):
-
-        self.action_std = self.action_std - self.action_std_decay
+    def set_action_std(self, action_std=None):
+        
+        if action_std is None:
+            self.action_std = self.action_std - self.action_std_decay
+        else:
+            self.action_std = action_std
         if self.action_std < self.action_std_min: self.action_std = self.action_std_min
+        
         self.action_var = T.full((*self.action_dim,), self.action_std * self.action_std).to(self.device)
 
     def forward(self, state):
@@ -218,7 +239,7 @@ class CriticNetwork(nn.Module):
     def __init__(self, input_dims, alpha, fc1_dims=256, fc2_dims=256, chkpt_dir="") -> None:
         super(CriticNetwork, self).__init__()
 
-        self.checkpoint_file = os.path.join(chkpt_dir, "critic_ppo_discrete.pt")
+        self.checkpoint_file = os.path.join(chkpt_dir, "critic_ppo.pt")
         self.critic = nn.Sequential(
             nn.Linear(*input_dims, fc1_dims),
             nn.ReLU(),

@@ -10,7 +10,7 @@ config = {"n_games": 10,
           "alpha": 0.001,
           "beta": 0.001,
           "batch_size": 100,
-          "experiment": "baseline1",
+          "experiment": "baseline2_no_reward",
           "n_epochs": 4,
           "fc2": 512,
           "debug": True}
