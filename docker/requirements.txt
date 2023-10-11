@@ -1,5 +1,5 @@
-gym==0.15.7
-matplotlib==3.1.2
-numpy==1.17.4
+gym==0.26.2
+numpy
 wandb
+stable-baselines3==2.0.0
 
